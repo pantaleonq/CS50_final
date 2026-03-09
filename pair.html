@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ ticker_a }} / {{ ticker_b }}</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background: #fafafa;
+            color: #333;
+        }
+        h1 { color: #1a1a2e; }
+        h2 { color: #1a1a2e; margin-top: 30px; }
+        a {
+            color: #2d6aa5;
+            text-decoration: none;
+        }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .metric-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .metric-box .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a1a2e;
+        }
+        .metric-box .label {
+            font-size: 13px;
+            color: #777;
+            margin-top: 5px;
+        }
+        .chart {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <a href="/">← Zurück zur Übersicht</a>
+    <h1>{{ ticker_a }} / {{ ticker_b }}</h1>
+
+    <div class="metrics">
+        <div class="metric-box">
+            <div class="value">{{ beta }}</div>
+            <div class="label">Hedge Ratio (β)</div>
+        </div>
+        <div class="metric-box">
+            <div class="value">{{ half_life }} d</div>
+            <div class="label">Half-Life</div>
+        </div>
+        <div class="metric-box">
+            <div class="value">{{ sharpe }}</div>
+            <div class="label">Sharpe Ratio</div>
+        </div>
+        <div class="metric-box">
+            <div class="value">{{ win_rate }}%</div>
+            <div class="label">Win Rate</div>
+        </div>
+        <div class="metric-box">
+            <div class="value">{{ n_trades }}</div>
+            <div class="label">Trades</div>
+        </div>
+        <div class="metric-box">
+            <div class="value">{{ max_dd }}</div>
+            <div class="label">Max Drawdown</div>
+        </div>
+        <div class="metric-box">
+            <div class="value">{{ total_pnl }}</div>
+            <div class="label">Total P&L</div>
+        </div>
+        <div class="metric-box">
+            <div class="value">{{ mu }}</div>
+            <div class="label">Gleichgewicht (μ)</div>
+        </div>
+    </div>
+
+    <h2>Spread</h2>
+    <div class="chart" id="spread-chart"></div>
+
+    <h2>Z-Score</h2>
+    <div class="chart" id="zscore-chart"></div>
+
+    <h2>Equity-Kurve (Out-of-Sample)</h2>
+    <div class="chart" id="equity-chart"></div>
+
+    <script>
+        var spreadData = {{ spread_data | safe }};
+        var zScoreData = {{ z_score_data | safe }};
+        var equityData = {{ equity_data | safe }};
+        var mu = {{ mu }};
+
+        var layout = {
+            margin: {t: 20, r: 30, b: 40, l: 60},
+            height: 300,
+            paper_bgcolor: 'white',
+            plot_bgcolor: 'white',
+            xaxis: {title: 'Handelstage'},
+        };
+
+        // Spread mit Gleichgewichtslinie
+        Plotly.newPlot('spread-chart', [{
+            y: spreadData,
+            type: 'scatter',
+            line: {color: '#2d6aa5'}
+        }, {
+            y: Array(spreadData.length).fill(mu),
+            type: 'scatter',
+            line: {color: 'red', dash: 'dash', width: 1},
+            name: 'μ'
+        }], {...layout, showlegend: false});
+
+        // Z-Score mit Schwellenwerten
+        var len = zScoreData.length;
+        Plotly.newPlot('zscore-chart', [{
+            y: zScoreData,
+            type: 'scatter',
+            line: {color: '#2d6aa5'}
+        }, {
+            y: Array(len).fill(2),
+            type: 'scatter',
+            line: {color: 'red', dash: 'dash', width: 1},
+            name: 'Entry Short'
+        }, {
+            y: Array(len).fill(-2),
+            type: 'scatter',
+            line: {color: 'green', dash: 'dash', width: 1},
+            name: 'Entry Long'
+        }, {
+            y: Array(len).fill(0.5),
+            type: 'scatter',
+            line: {color: 'orange', dash: 'dash', width: 1},
+            name: 'Exit'
+        }, {
+            y: Array(len).fill(-0.5),
+            type: 'scatter',
+            line: {color: 'orange', dash: 'dash', width: 1},
+            showlegend: false
+        }], {...layout, showlegend: true});
+
+        // Equity mit Nulllinie
+        Plotly.newPlot('equity-chart', [{
+            y: equityData,
+            type: 'scatter',
+            line: {color: '#2d6aa5'}
+        }, {
+            y: Array(equityData.length).fill(0),
+            type: 'scatter',
+            line: {color: 'red', dash: 'dash', width: 1},
+            showlegend: false
+        }], {...layout, showlegend: false});
+    </script>
+</body>
+</html>
